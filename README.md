@@ -4,7 +4,8 @@ Self-hosted AI workspace: chat, agents, research, docs, email and calendar in on
 
 **Live demo:** https://sentiq-ai.vercel.app
 
-![Dashboard](docs/screenshots/dashboard.png)
+<img width="1917" height="862" alt="image" src="https://github.com/user-attachments/assets/6fce21a4-9497-478e-b79c-2763e9a63310" />
+
 
 ## Features
 - AI chat with multiple LLM providers
