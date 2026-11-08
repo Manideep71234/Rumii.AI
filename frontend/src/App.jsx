@@ -55,6 +55,12 @@ function App() {
     return hash || 'chat';
   });
   const [user, setUser] = useState({ username: 'Loading...' });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(
+    window.location.pathname === '/login' || 
+    window.location.pathname === '/logout-success' || 
+    window.location.pathname === '/reset-password'
+  );
   const [theme, setTheme] = useState('light');
   const [showStartup, setShowStartup] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -118,17 +124,24 @@ function App() {
     }
 
     fetch('/auth/me')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Not authenticated');
+        return res.json();
+      })
       .then(data => {
-        if (data.username) {
+        if (data && data.username) {
           setUser(data);
           window.wsToken = data.ws_token;
+          setIsAuthenticated(true);
         } else {
           window.location.href = '/login';
         }
       })
       .catch(() => {
         window.location.href = '/login';
+      })
+      .finally(() => {
+        setAuthChecked(true);
       });
   }, []);
 
@@ -142,6 +155,23 @@ function App() {
 
   if (window.location.pathname === '/logout-success') {
     return <LogoutView />;
+  }
+
+  if (!authChecked || !isAuthenticated) {
+    return (
+      <div className="app-wrapper">
+        <div className="startup-overlay">
+          <div className="hello-text">
+            <svg className="handwriting-svg" viewBox="0 0 400 100">
+              <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                <tspan className="handwriting-text-cursive">Rumii</tspan>
+                <tspan className="handwriting-text-sans" dx="2" dy="-3" opacity="0.85">.AI</tspan>
+              </text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const toggleTheme = () => {

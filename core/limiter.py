@@ -1,9 +1,16 @@
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from starlette.requests import Request
 import time
 from collections import defaultdict
 
-limiter = Limiter(key_func=get_remote_address)
+def get_real_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=get_real_client_ip)
 
 class SearchRateLimiter:
     def __init__(self, max_requests=5, window_seconds=60):
