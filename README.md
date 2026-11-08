@@ -45,9 +45,5 @@ python app.py
 ```
 Docker: `docker-compose up --build`
 
-## API / Backend Proof
-![API docs](docs/screenshots/api-docs.png)
-![Tests passing](docs/screenshots/tests.png)
-
 ## License
 MIT
