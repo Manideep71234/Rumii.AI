@@ -9,8 +9,7 @@ import DocumentManager from './components/DocumentManager';
 import EmailManager from './components/EmailManager';
 import NotesTasksManager from './components/NotesTasksManager';
 import CalendarManager from './components/CalendarManager';
-import SettingsScheduledTasks from './components/SettingsScheduledTasks';
-import SettingsAPIKeys from './components/SettingsAPIKeys';
+import SettingsView from './components/SettingsView';
 import MCPServers from './components/MCPServers';
 import CompareView from './components/CompareView';
 import ProfileView from './components/ProfileView';
@@ -299,11 +298,8 @@ function App() {
             <div style={{ display: activeView === 'calendar' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
               <CalendarManager user={user} />
             </div>
-            <div style={{ display: activeView === 'settings' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
-              <SettingsScheduledTasks user={user} />
-            </div>
-            <div style={{ display: activeView === 'api-keys' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
-              <SettingsAPIKeys />
+            <div style={{ display: (activeView === 'settings' || activeView === 'api-keys') ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
+              <SettingsView user={user} initialTab={activeView === 'api-keys' ? 'api-keys' : 'api-keys'} />
             </div>
             <div style={{ display: activeView === 'profile' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
               <ProfileView user={user} setUser={setUser} setActiveView={setActiveView} />

@@ -1,4 +1,4 @@
-﻿import json
+import json
 import time
 import asyncio
 from datetime import datetime, timezone

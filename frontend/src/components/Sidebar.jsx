@@ -87,7 +87,7 @@ export default function Sidebar({ activeView, setActiveView, user, toggleTheme, 
             </span>
           </div>
           <div style={{ display: 'flex', gap: '0.25rem' }}>
-            <button className="theme-toggle" onClick={() => setActiveView('api-keys')} title="API Keys" style={isCollapsed ? { display: 'none' } : {}}>
+            <button className="theme-toggle" onClick={() => setActiveView('settings')} title="Settings & API Keys" style={isCollapsed ? { display: 'none' } : {}}>
               <Key size={14} />
             </button>
             <button className="theme-toggle" onClick={() => setIsCollapsed(!isCollapsed)} title="Toggle Sidebar">
