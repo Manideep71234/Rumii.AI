@@ -39,21 +39,24 @@ def mask_key(key: str) -> str:
 @router.get("/api-keys", response_model=APIKeysResponse)
 def get_api_keys(user: User = Depends(get_current_user), db: Session = Depends(get_session)):
     settings = db.exec(select(UserSettings).where(UserSettings.user_id == user.id)).first()
-    if not settings:
-        return APIKeysResponse(has_groq=False, has_openrouter=False, has_gemini=False)
     
     from core.security import decrypt_string
-    groq_plain = decrypt_string(settings.groq_api_key) if settings.groq_api_key else None
-    or_plain = decrypt_string(settings.openrouter_api_key) if settings.openrouter_api_key else None
-    gemini_plain = decrypt_string(settings.gemini_api_key) if settings.gemini_api_key else None
+    groq_plain = decrypt_string(settings.groq_api_key) if settings and settings.groq_api_key else None
+    or_plain = decrypt_string(settings.openrouter_api_key) if settings and settings.openrouter_api_key else None
+    gemini_plain = decrypt_string(settings.gemini_api_key) if settings and settings.gemini_api_key else None
+    
+    sys_groq = bool(app_settings.GROQ_API_KEY)
+    sys_or = bool(app_settings.OPENROUTER_API_KEY)
+    sys_gem = bool(getattr(app_settings, "GEMINI_API_KEY", None))
+    is_guest = getattr(user, "auth_provider", None) == "guest"
     
     return APIKeysResponse(
-        has_groq=bool(settings.groq_api_key),
-        has_openrouter=bool(settings.openrouter_api_key),
-        has_gemini=bool(settings.gemini_api_key),
-        groq_masked=mask_key(groq_plain),
-        openrouter_masked=mask_key(or_plain),
-        gemini_masked=mask_key(gemini_plain)
+        has_groq=bool(groq_plain or sys_groq or is_guest),
+        has_openrouter=bool(or_plain or sys_or or is_guest),
+        has_gemini=bool(gemini_plain or sys_gem or is_guest),
+        groq_masked=mask_key(groq_plain) or ("System Configured" if sys_groq else None),
+        openrouter_masked=mask_key(or_plain) or ("System Configured" if sys_or else None),
+        gemini_masked=mask_key(gemini_plain) or ("System Configured" if sys_gem else None)
     )
 
 @router.post("/api-keys")

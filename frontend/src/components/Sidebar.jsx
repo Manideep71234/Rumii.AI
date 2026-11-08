@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Globe, FileText, Mail, FileEdit, Calendar, GitCompare, Settings, LogOut, Key, Plus, Edit2, Trash2, Check, X, PanelLeftClose, PanelLeftOpen, Shield, Wand2 } from 'lucide-react';
+import { MessageSquare, Globe, FileText, Mail, FileEdit, Calendar, GitCompare, Settings, LogOut, LogIn, Key, Plus, Edit2, Trash2, Check, X, PanelLeftClose, PanelLeftOpen, Shield, Wand2, Sparkles } from 'lucide-react';
 
 export default function Sidebar({ activeView, setActiveView, user, toggleTheme, theme, isOpen, setIsOpen, isCollapsed, setIsCollapsed }) {
+  const isGuest = Boolean(user && (user.auth_provider === 'guest' || user.is_guest));
   const navItems = [
     { id: 'chat', icon: MessageSquare, label: 'Chat' },
     { id: 'research', icon: Globe, label: 'Research' },
@@ -199,10 +200,21 @@ export default function Sidebar({ activeView, setActiveView, user, toggleTheme, 
       <div className="sidebar-footer">
         <button 
           className="nav-item" 
-          onClick={() => { setActiveView('profile'); setIsOpen(false); }} 
+          onClick={() => { 
+            if (isGuest) {
+              window.location.href = '/login';
+            } else {
+              setActiveView('profile'); 
+              setIsOpen(false); 
+            }
+          }} 
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: activeView === 'profile' ? 'var(--hover-bg)' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left' }}
         >
-          {user.profile_pic ? (
+          {isGuest ? (
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={18} />
+            </div>
+          ) : user.profile_pic ? (
             <img 
               src={user.profile_pic} 
               alt="Profile" 
@@ -215,22 +227,34 @@ export default function Sidebar({ activeView, setActiveView, user, toggleTheme, 
           )}
           <div className="nav-label" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-color)', lineHeight: '1.2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {(user.full_name || user.username)?.includes('@') ? (user.full_name || user.username).split('@')[0].toUpperCase() : (user.full_name || user.username)}
+              {isGuest ? 'Guest User' : ((user.full_name || user.username)?.includes('@') ? (user.full_name || user.username).split('@')[0].toUpperCase() : (user.full_name || user.username))}
             </span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-              Manage Profile
+            <span style={{ fontSize: '0.7rem', color: isGuest ? 'var(--accent-color)' : 'var(--text-secondary)', whiteSpace: 'nowrap', fontWeight: isGuest ? 500 : 400 }}>
+              {isGuest ? '✨ Guest Mode (Sign In)' : 'Manage Profile'}
             </span>
           </div>
         </button>
         <button 
           className="nav-item"
           onClick={async () => {
-            await fetch('/auth/logout', { method: 'POST' });
-            window.location.href = '/logout-success';
+            if (isGuest) {
+              window.location.href = '/login';
+            } else {
+              await fetch('/auth/logout', { method: 'POST' });
+              window.location.href = '/logout-success';
+            }
           }}
           style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}
         >
-          <LogOut size={16} style={{ flexShrink: 0 }} /> <span className="nav-label">Logout</span>
+          {isGuest ? (
+            <>
+              <LogIn size={16} style={{ flexShrink: 0 }} /> <span className="nav-label">Sign In / Register</span>
+            </>
+          ) : (
+            <>
+              <LogOut size={16} style={{ flexShrink: 0 }} /> <span className="nav-label">Logout</span>
+            </>
+          )}
         </button>
       </div>
     </aside>

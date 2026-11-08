@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 
 export default function LoginView() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -8,6 +9,7 @@ export default function LoginView() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   useEffect(() => {
@@ -22,6 +24,27 @@ export default function LoginView() {
       document.head.appendChild(script);
     }
   }, []);
+
+  const handleGuestLogin = async () => {
+    setIsGuestLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/auth/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg(data.detail || 'Could not enter guest mode. Please try again.');
+      }
+    } catch (err) {
+      setErrorMsg('Network error. Please try again.');
+    } finally {
+      setIsGuestLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -153,9 +176,47 @@ export default function LoginView() {
         <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
           Rumii<span style={{ color: 'var(--accent-color)' }}>.AI</span>
         </h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '30px' }}>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
           {isForgotPassword ? 'Reset your password.' : 'Sign in to your intelligent workspace.'}
         </p>
+
+        {!isForgotPassword && (
+          <div style={{ marginBottom: '24px' }}>
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={isGuestLoading}
+              className="glass-btn"
+              style={{
+                width: '100%',
+                padding: '13px',
+                background: 'var(--accent-color)',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '0.95rem',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                cursor: isGuestLoading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                transition: 'all 0.2s ease',
+                opacity: isGuestLoading ? 0.7 : 1
+              }}
+            >
+              <Sparkles size={18} />
+              {isGuestLoading ? 'Opening Chat...' : 'Continue as Guest'}
+            </button>
+
+            <div style={{ margin: '20px 0 0 0', borderBottom: '1px solid var(--panel-border)', position: 'relative' }}>
+              <span style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'var(--panel-bg)', padding: '0 10px', fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                or sign in with email
+              </span>
+            </div>
+          </div>
+        )}
 
         {isForgotPassword ? (
           <form onSubmit={handleForgotPassword} style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>

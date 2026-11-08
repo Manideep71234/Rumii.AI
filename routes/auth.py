@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from core.database import get_session
 from core.models import User, SessionModel
 from core.security import verify_password, get_password_hash, generate_session_id
-from core.auth import get_current_user
+from core.auth import get_current_user, is_session_expired
 from core.limiter import limiter
 from itsdangerous import URLSafeTimedSerializer
 from core.config import settings
@@ -98,6 +98,77 @@ def login(request: Request, response: Response, login_data: LoginRequest, db: Se
         max_age=7 * 24 * 60 * 60
     )
     return {"message": "Logged in successfully"}
+
+@router.post("/guest")
+def guest_login(request: Request, response: Response, db: Session = Depends(get_session)):
+    import uuid
+    from core.security import generate_random_password
+
+    # Check if this browser already has an active valid guest session
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        session_db = db.exec(select(SessionModel).where(SessionModel.session_id == session_id)).first()
+        if session_db and not is_session_expired(session_db.expires_at):
+            user = db.exec(select(User).where(User.id == session_db.user_id)).first()
+            if user and user.is_active:
+                return {
+                    "id": user.id,
+                    "username": user.username,
+                    "full_name": user.full_name or "Guest User",
+                    "auth_provider": user.auth_provider,
+                    "is_guest": user.auth_provider == "guest",
+                    "is_admin": user.is_admin,
+                    "ws_token": session_id
+                }
+
+    # Generate a fresh unique guest user
+    guest_id = uuid.uuid4().hex[:8]
+    guest_username = f"guest_{guest_id}"
+    guest_email = f"{guest_username}@guest.rumiiai.com"
+    dummy_pass = generate_random_password(16)
+    hashed = get_password_hash(dummy_pass)
+
+    guest_user = User(
+        username=guest_username,
+        email=guest_email,
+        password_hash=hashed,
+        full_name="Guest User",
+        auth_provider="guest",
+        is_admin=False,
+        is_active=True
+    )
+    db.add(guest_user)
+    db.commit()
+    db.refresh(guest_user)
+
+    new_session_id = generate_session_id()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    new_session = SessionModel(
+        session_id=new_session_id,
+        user_id=guest_user.id,
+        expires_at=expires_at
+    )
+    db.add(new_session)
+    db.commit()
+
+    response.set_cookie(
+        key="session_id",
+        value=new_session_id,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("COOKIE_SECURE", "true").lower() == "true",
+        max_age=7 * 24 * 60 * 60
+    )
+
+    return {
+        "id": guest_user.id,
+        "username": guest_user.username,
+        "full_name": guest_user.full_name,
+        "auth_provider": "guest",
+        "is_guest": True,
+        "is_admin": False,
+        "ws_token": new_session_id
+    }
 
 @router.post("/logout")
 def logout(request: Request, response: Response, db: Session = Depends(get_session)):
@@ -240,8 +311,9 @@ def get_me(request: Request, user: User = Depends(get_current_user)):
         "id": user.id, 
         "username": user.username, 
         "is_admin": user.is_admin,
+        "is_guest": getattr(user, "auth_provider", None) == "guest",
         "profile_pic": user.profile_pic,
-        "full_name": user.full_name,
+        "full_name": user.full_name or ("Guest User" if getattr(user, "auth_provider", None) == "guest" else user.username),
         "auth_provider": user.auth_provider,
         "ws_token": request.cookies.get("session_id")
     }

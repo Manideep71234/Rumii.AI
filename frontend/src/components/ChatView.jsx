@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Square, Paperclip, X, Loader2, Mic, MicOff } from 'lucide-react';
+import { Send, Square, Paperclip, X, Loader2, Mic, MicOff, Sparkles } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import ToolLog from './ToolLog';
@@ -7,7 +7,8 @@ import ProcessingIndicator, { rollNewProcessingWord } from './ProcessingIndicato
 
 import Dropdown from './Dropdown';
 
-export default function ChatView({ isResearch = false, activeView, setActiveView }) {
+export default function ChatView({ isResearch = false, activeView, setActiveView, user }) {
+  const isGuest = Boolean(user && (user.auth_provider === 'guest' || user.is_guest));
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState(null);
@@ -128,14 +129,17 @@ export default function ChatView({ isResearch = false, activeView, setActiveView
 
   const fetchModels = async () => {
     try {
+      if (isGuest) {
+        setHasAnyKey(true);
+      }
       const settingsRes = await fetch(`/settings/api-keys?t=${Date.now()}`);
       let hasCustomKey = false;
       if (settingsRes.ok) {
         const settings = await settingsRes.json();
         hasCustomKey = settings.has_openrouter;
-        setHasAnyKey(settings.has_groq || settings.has_openrouter || settings.has_gemini);
+        setHasAnyKey(isGuest || settings.has_groq || settings.has_openrouter || settings.has_gemini);
       } else {
-        setHasAnyKey(false);
+        setHasAnyKey(isGuest ? true : false);
       }
 
       const liveRes = await fetch(`/settings/models/live?t=${Date.now()}`);
@@ -588,6 +592,27 @@ export default function ChatView({ isResearch = false, activeView, setActiveView
           />
         </div>
 
+        {isGuest && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            borderRadius: '16px',
+            background: 'rgba(99, 102, 241, 0.08)',
+            border: '1px solid rgba(99, 102, 241, 0.2)',
+            fontSize: '0.75rem',
+            color: 'var(--accent-color)',
+            fontWeight: 500,
+            whiteSpace: 'nowrap'
+          }}>
+            <Sparkles size={12} />
+            <span>Guest Mode</span>
+            <span style={{ opacity: 0.3 }}>•</span>
+            <a href="/login" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', fontSize: '0.72rem' }}>Sign In</a>
+          </div>
+        )}
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{Math.ceil(input.length / 4)}</span> tokens
         </div>
@@ -597,7 +622,11 @@ export default function ChatView({ isResearch = false, activeView, setActiveView
         {messages.length === 0 && (
           <div className="message system-message" style={{ textAlign: 'center', marginTop: 'auto', marginBottom: '1rem', color: 'var(--text-secondary)' }}>
             <div className="message-content">
-              {isResearch ? "Enter a topic to generate a comprehensive research report." : "Welcome to Rumii.AI! Type a message to start chatting."}
+              {isResearch ? "Enter a topic to generate a comprehensive research report." : (
+                isGuest
+                  ? "Welcome to Rumii.AI Guest Mode! Type any message below to start chatting."
+                  : "Welcome to Rumii.AI! Type a message to start chatting."
+              )}
             </div>
           </div>
         )}
@@ -710,7 +739,7 @@ export default function ChatView({ isResearch = false, activeView, setActiveView
         </form>
       </div>
 
-      {hasAnyKey === false && (
+      {hasAnyKey === false && !isGuest && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(5px)',

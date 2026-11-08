@@ -118,6 +118,23 @@ function App() {
     };
   }, [activeView]);
 
+  const enterGuestMode = async () => {
+    try {
+      const res = await fetch('/auth/guest', { method: 'POST' });
+      if (res.ok) {
+        const guestData = await res.json();
+        setUser(guestData);
+        window.wsToken = guestData.ws_token;
+        setIsAuthenticated(true);
+        setActiveView('chat');
+        return true;
+      }
+    } catch (e) {
+      console.warn('Guest login error:', e);
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (window.location.pathname === '/login' || window.location.pathname === '/logout-success' || window.location.pathname === '/reset-password') {
       return;
@@ -134,11 +151,15 @@ function App() {
           window.wsToken = data.ws_token;
           setIsAuthenticated(true);
         } else {
-          window.location.href = '/login';
+          return enterGuestMode().then(ok => {
+            if (!ok) window.location.href = '/login';
+          });
         }
       })
       .catch(() => {
-        window.location.href = '/login';
+        return enterGuestMode().then(ok => {
+          if (!ok) window.location.href = '/login';
+        });
       })
       .finally(() => {
         setAuthChecked(true);
@@ -261,10 +282,10 @@ function App() {
 
           <div className="view-transition" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ display: activeView === 'chat' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
-              <ChatView activeView={activeView} setActiveView={setActiveView} />
+              <ChatView activeView={activeView} setActiveView={setActiveView} user={user} />
             </div>
             <div style={{ display: activeView === 'research' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
-              <ChatView isResearch={true} activeView={activeView} setActiveView={setActiveView} />
+              <ChatView isResearch={true} activeView={activeView} setActiveView={setActiveView} user={user} />
             </div>
             <div style={{ display: activeView === 'documents' ? 'flex' : 'none', flex: 1, height: '100%', flexDirection: 'column', overflow: 'hidden' }}>
               <DocumentManager user={user} />

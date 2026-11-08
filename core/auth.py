@@ -4,6 +4,11 @@ from datetime import datetime, timezone
 from .database import get_session
 from .models import SessionModel, User
 
+def is_session_expired(expires_at: datetime) -> bool:
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < datetime.now(timezone.utc)
+
 def get_current_user(request: Request, db: Session = Depends(get_session)):
     session_id = request.cookies.get("session_id")
     if not session_id:
@@ -13,7 +18,7 @@ def get_current_user(request: Request, db: Session = Depends(get_session)):
         )
     
     session_db = db.exec(select(SessionModel).where(SessionModel.session_id == session_id)).first()
-    if not session_db or session_db.expires_at < datetime.now(timezone.utc):
+    if not session_db or is_session_expired(session_db.expires_at):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or invalid"
@@ -39,7 +44,7 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_sessio
         return None
         
     session_db = db.exec(select(SessionModel).where(SessionModel.session_id == session_id)).first()
-    if not session_db or session_db.expires_at < datetime.now(timezone.utc):
+    if not session_db or is_session_expired(session_db.expires_at):
         return None
         
     user = db.exec(select(User).where(User.id == session_db.user_id)).first()
